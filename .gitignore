@@ -1,0 +1,31 @@
+# Dataset
+data/
+
+# Streamlit
+.streamlit/
+
+# VS Code
+.vscode/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Virtual Environment
+.venv/
+venv/
+
+# Logs
+*.log
+
+# Environment variables / secrets
+.env
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+*.swp
+
+docs/
