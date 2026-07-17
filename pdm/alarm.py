@@ -21,6 +21,13 @@ from pdm.anomaly import FEATURE_COLUMNS, N_SIGMA
 PERSISTENCE_FRACTION = 0.005
 BURN_IN_FRACTION = 0.05
 MIN_PERSISTENCE_WINDOWS = 3
+VOTING_CONFIRM_WINDOWS = 2  # a voting trigger (>=2 features abnormal at once) must hold for
+                             # this many consecutive windows before it counts as a real alarm -
+                             # a single noisy row that coincidentally trips 2 correlated features
+                             # for one snapshot is not evidence of a fault, and left unguarded it
+                             # can fire the RUL trigger far too early (see Laporan Progres /
+                             # troubleshooting notes: this is what caused an ~800h-early RUL
+                             # trigger on the Test 3 holdout run, wrecking the exponential fit)
 
 
 def _feature_zscores(df: pd.DataFrame, healthy_end_idx: int,
@@ -60,6 +67,7 @@ def evaluate(df: pd.DataFrame, healthy_end_idx: int,
     reasons = np.empty(n, dtype=object)
     consecutive_abnormal = 0
     consecutive_normal = 0
+    consecutive_voting = 0
     state = "NORMAL"
 
     for i in range(n):
@@ -68,19 +76,33 @@ def evaluate(df: pd.DataFrame, healthy_end_idx: int,
             reasons[i] = "Burn-in / baseline calibration period"
             consecutive_abnormal = 0
             consecutive_normal = 0
+            consecutive_voting = 0
             state = "NORMAL"
             continue
 
         k = n_abnormal[i]
         if k >= 2:
             cols_abnormal = [c for c in columns if abnormal.iloc[i][c]]
-            consecutive_abnormal = persistence_n  # voting bypasses the persistence wait
+            consecutive_voting += 1
             consecutive_normal = 0
-            state = "CRITICAL"
-            reasons[i] = f"Voting: {k} parameters abnormal at once ({', '.join(cols_abnormal)})"
+            if consecutive_voting >= VOTING_CONFIRM_WINDOWS:
+                consecutive_abnormal = persistence_n  # voting bypasses the persistence wait
+                state = "CRITICAL"
+                reasons[i] = (
+                    f"Voting: {k} parameters abnormal for {consecutive_voting} consecutive "
+                    f"windows ({', '.join(cols_abnormal)})"
+                )
+            else:
+                reasons[i] = (
+                    f"Voting building confirmation ({consecutive_voting}/{VOTING_CONFIRM_WINDOWS}): "
+                    f"{k} parameters abnormal ({', '.join(cols_abnormal)})"
+                )
+                # state intentionally unchanged - a single noisy row hitting 2
+                # correlated features shouldn't alone flip status
         elif k == 1:
             consecutive_abnormal += 1
             consecutive_normal = 0
+            consecutive_voting = 0
             col_abnormal = [c for c in columns if abnormal.iloc[i][c]][0]
             if state == "CRITICAL":
                 # Was in the strongest state; a single-feature reading now
@@ -98,6 +120,7 @@ def evaluate(df: pd.DataFrame, healthy_end_idx: int,
         else:
             consecutive_abnormal = 0
             consecutive_normal += 1
+            consecutive_voting = 0
             if state != "NORMAL" and consecutive_normal < recovery_n:
                 reasons[i] = (
                     f"Recovering - confirming normal ({consecutive_normal}/{recovery_n}) "

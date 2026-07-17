@@ -8,6 +8,12 @@ branding choice. All icons below are hand-authored Feather/Lucide-style
 strokes - zero emoji anywhere in this app.
 """
 
+import base64
+from functools import lru_cache
+from pathlib import Path
+
+_ASSETS_DIR = Path(__file__).resolve().parent / "assets"
+
 COLORS = {
     "primary": "#0F172A",       # navy - headers, primary text
     "secondary": "#334155",      # slate - secondary text
@@ -114,11 +120,43 @@ def icon_for_status(level: str, size: int = 20) -> str:
     return icon(mapping.get(level, "activity"), size=size, color=STATUS_COLOR.get(level, COLORS["text"]))
 
 
+@lru_cache(maxsize=1)
+def _astra_logo_data_uri() -> str:
+    data = (_ASSETS_DIR / "astra_logo.png").read_bytes()
+    return f"data:image/png;base64,{base64.b64encode(data).decode('ascii')}"
+
+
+def astra_logo_img(height: int = 28, style: str = "") -> str:
+    """The real PT Astra Otoparts wordmark (app/assets/astra_logo.png,
+    supplied by the user - not fetched/guessed). Red/dark on transparent -
+    used where there's a light background behind it (e.g. the sidebar)."""
+    return (
+        f'<img src="{_astra_logo_data_uri()}" alt="Astra Otoparts" '
+        f'style="height:{height}px;width:auto;display:block;{style}">'
+    )
+
+
+@lru_cache(maxsize=1)
+def _astra_globe_data_uri() -> str:
+    data = (_ASSETS_DIR / "astra_globe.png").read_bytes()
+    return f"data:image/png;base64,{base64.b64encode(data).decode('ascii')}"
+
+
+def astra_globe_img(height: int = 28, style: str = "") -> str:
+    """Icon-only crop of the Astra Otoparts logo (just the ringed globe +
+    swoosh, no wordmark, app/assets/astra_globe.png) - for tight spots like
+    the topbar where the full wordmark chip is too heavy."""
+    return (
+        f'<img src="{_astra_globe_data_uri()}" alt="Astra" '
+        f'style="height:{height}px;width:auto;display:block;{style}">'
+    )
+
+
 def global_css() -> str:
     c = COLORS
     return f"""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@500;600;700&family=Source+Sans+3:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@500;600;700;800&family=Source+Sans+3:wght@400;500;600&family=JetBrains+Mono:wght@500;600;700&display=swap');
 
 html, body, [class*="css"] {{
     font-family: 'Source Sans 3', -apple-system, sans-serif;
@@ -130,37 +168,105 @@ h1, h2, h3, h4, .app-title {{
     letter-spacing: -0.01em;
 }}
 #MainMenu, footer, header {{visibility: hidden;}}
-.block-container {{padding-top: 1.6rem; max-width: 1200px;}}
 
-.astra-topbar {{
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 14px 20px; margin-bottom: 18px;
-    background: linear-gradient(90deg, {c["primary"]} 0%, {c["accent"]} 100%);
-    border-radius: 10px; color: white;
+/* Living background: two soft drifting glows + a slowly panning isometric
+   hex/triangle lattice (three 60deg line families - an engineering/PCB feel,
+   not a plain spreadsheet grid) - subtle enough not to hurt text contrast,
+   but animated so the whole app reads as "alive" instead of a flat page. */
+@keyframes astra-bg-drift {{
+    0%, 100% {{
+        background-position: 0% 0%, 0% 0%, 0px 0px, 0px 0px, 0px 0px, 0 0;
+    }}
+    50% {{
+        background-position: 6% 8%, -6% -8%, 46px 0px, -23px 40px, 23px 40px, 0 0;
+    }}
 }}
-.astra-topbar .title {{ font-family:'Lexend',sans-serif; font-weight:600; font-size:1.15rem; }}
-.astra-topbar .subtitle {{ font-size:0.8rem; opacity:0.85; }}
+.stApp {{
+    background:
+        radial-gradient(560px 560px at 10% 12%, {c["accent_light"]}CC 0%, transparent 68%),
+        radial-gradient(520px 520px at 92% 82%, #DCEEFF 0%, transparent 65%),
+        repeating-linear-gradient(0deg,   rgba(15,23,42,0.07) 0 1px, transparent 1px 46px),
+        repeating-linear-gradient(60deg,  rgba(15,23,42,0.07) 0 1px, transparent 1px 46px),
+        repeating-linear-gradient(-60deg, rgba(15,23,42,0.07) 0 1px, transparent 1px 46px),
+        {c["background"]};
+    background-size: auto, auto, auto, auto, auto, auto;
+    background-repeat: no-repeat, no-repeat, repeat, repeat, repeat, no-repeat;
+    animation: astra-bg-drift 26s ease-in-out infinite;
+}}
+@media (prefers-reduced-motion: reduce) {{
+    .stApp {{ animation: none; }}
+}}
+.block-container {{padding-top: 1.6rem; max-width: 1220px;}}
 
+/* -------------------- Numeric / data typography -------------------- */
+.metric-mono {{
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+}}
+
+/* -------------------- Top bar -------------------- */
+.astra-topbar {{
+    position: relative; overflow: hidden;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 26px; margin-bottom: 20px;
+    background:
+        radial-gradient(600px 240px at 15% 0%, rgba(255,255,255,0.10) 0%, transparent 60%),
+        linear-gradient(115deg, {c["primary"]} 0%, #113B66 45%, {c["accent"]} 100%);
+    border-radius: 14px; color: white;
+    box-shadow: 0 12px 28px -10px rgba(15, 23, 42, 0.45), 0 2px 6px rgba(15, 23, 42, 0.15);
+}}
+.astra-topbar::after {{
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background-image: radial-gradient(rgba(255,255,255,0.14) 1px, transparent 1px);
+    background-size: 18px 18px;
+    -webkit-mask-image: linear-gradient(115deg, rgba(0,0,0,0.5), transparent 65%);
+            mask-image: linear-gradient(115deg, rgba(0,0,0,0.5), transparent 65%);
+}}
+.astra-topbar > div {{ position: relative; z-index: 1; }}
+.astra-topbar .title {{ font-family:'Lexend',sans-serif; font-weight:700; font-size:1.2rem; }}
+.astra-topbar .subtitle {{ font-size:0.8rem; opacity:0.88; }}
+
+/* -------------------- KPI / metric cards -------------------- */
 .kpi-card {{
-    background: {c["surface"]}; border: 1px solid {c["border"]};
-    border-radius: 12px; padding: 16px 18px; height: 100%;
+    position: relative; background: {c["surface"]}; border: 1px solid {c["border"]};
+    border-radius: 16px; padding: 18px 20px; height: 100%;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 10px 24px -16px rgba(15, 23, 42, 0.25);
+    transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}}
+.kpi-card:hover {{
+    transform: translateY(-3px);
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.06), 0 18px 32px -14px rgba(15, 23, 42, 0.32);
+    border-color: {c["accent"]}55;
 }}
 .kpi-label {{
-    font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em;
-    color: {c["text_muted"]}; font-weight: 600; margin-bottom: 6px;
+    font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.06em;
+    color: {c["text_muted"]}; font-weight: 700; margin-bottom: 8px;
     display:flex; align-items:center; gap:6px;
 }}
-.kpi-value {{ font-family:'Lexend',sans-serif; font-size: 1.9rem; font-weight:700; color:{c["primary"]}; }}
+.kpi-value {{
+    font-family: 'JetBrains Mono', 'Lexend', sans-serif; font-size: 1.9rem; font-weight:700;
+    color:{c["primary"]}; font-variant-numeric: tabular-nums; letter-spacing: -0.02em;
+}}
 .kpi-sub {{ font-size: 0.82rem; color: {c["text_muted"]}; margin-top: 4px; }}
 
+/* -------------------- Status badges (with soft glow) -------------------- */
 .status-badge {{
     display:inline-flex; align-items:center; gap:8px;
-    padding: 6px 14px; border-radius: 999px; font-weight:600; font-size:0.92rem;
+    padding: 6px 14px; border-radius: 999px; font-weight:700; font-size:0.92rem;
+    box-shadow: inset 0 0 0 1px currentColor;
+}}
+.status-badge.pulse {{ animation: astra-badge-pulse 1.8s ease-in-out infinite; }}
+@keyframes astra-badge-pulse {{
+    0%, 100% {{ box-shadow: inset 0 0 0 1px currentColor, 0 0 0 0 currentColor; }}
+    50% {{ box-shadow: inset 0 0 0 1px currentColor, 0 0 0 6px transparent; }}
 }}
 
 .reco-box {{
-    border-left: 4px solid {c["accent"]}; background: {c["accent_light"]};
-    border-radius: 8px; padding: 14px 16px; font-size: 0.92rem; color:{c["primary"]};
+    border-left: 4px solid {c["accent"]};
+    background: linear-gradient(135deg, {c["accent_light"]} 0%, #F0F9FF 100%);
+    border-radius: 10px; padding: 14px 16px; font-size: 0.92rem; color:{c["primary"]};
+    box-shadow: 0 6px 16px -10px rgba(3, 105, 161, 0.35);
 }}
 
 .data-source-caption {{
@@ -168,9 +274,75 @@ h1, h2, h3, h4, .app-title {{
     font-size: 0.78rem; margin-top: 4px;
 }}
 
-.stTabs [data-baseweb="tab-list"] {{ gap: 4px; }}
+/* -------------------- Fleet Overview: attention rows & KPI strip -------------------- */
+.attention-row {{
+    border-left: 4px solid {c["border"]}; background: {c["surface"]};
+    border-radius: 10px; padding: 12px 16px; margin-bottom: 8px; font-size: 0.92rem;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 6px 16px -12px rgba(15, 23, 42, 0.25);
+    transition: transform 150ms ease, box-shadow 150ms ease;
+}}
+.attention-row:hover {{
+    transform: translateX(2px);
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06), 0 10px 22px -12px rgba(15, 23, 42, 0.3);
+}}
+.fleet-kpi-value {{
+    font-family: 'JetBrains Mono', 'Lexend', sans-serif; font-size: 1.8rem; font-weight: 700;
+    color: {c["primary"]}; font-variant-numeric: tabular-nums;
+}}
+.fleet-kpi-label {{
+    font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.06em;
+    color: {c["text_muted"]}; font-weight: 700;
+}}
+
+/* -------------------- Tabs -------------------- */
+.stTabs [data-baseweb="tab-list"] {{ gap: 4px; border-bottom: 1px solid {c["border"]}; }}
 .stTabs [data-baseweb="tab"] {{
-    font-family:'Lexend',sans-serif; font-weight:500; font-size:0.9rem;
+    font-family:'Lexend',sans-serif; font-weight:600; font-size:0.9rem;
+    color: {c["text_muted"]};
+}}
+.stTabs [aria-selected="true"] {{ color: {c["accent"]} !important; }}
+.stTabs [data-baseweb="tab-highlight"] {{
+    background-color: {c["accent"]} !important; height: 3px; border-radius: 3px;
+}}
+
+/* -------------------- Buttons -------------------- */
+.stButton > button {{
+    border-radius: 10px !important; font-weight: 600 !important;
+    transition: transform 150ms ease, box-shadow 150ms ease !important;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+}}
+.stButton > button:hover {{
+    transform: translateY(-1px);
+    box-shadow: 0 8px 16px -8px rgba(15, 23, 42, 0.35);
+}}
+.stButton > button[kind="primary"] {{
+    background: linear-gradient(135deg, {c["accent"]} 0%, #0C4A6E 100%) !important;
+    border: none !important;
+}}
+
+/* -------------------- Sidebar nav as a pill segmented control -------------------- */
+section[data-testid="stSidebar"] {{
+    background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%);
+    border-right: 1px solid {c["border"]};
+}}
+div[data-testid="stRadio"] label {{
+    padding: 9px 14px; border-radius: 9px; margin-bottom: 2px;
+    transition: background-color 150ms ease, color 150ms ease; cursor: pointer;
+}}
+div[data-testid="stRadio"] label:hover {{ background: {c["accent_light"]}; }}
+div[data-testid="stRadio"] label:has(input:checked) {{
+    background: {c["accent_light"]}; font-weight: 700; color: {c["accent"]};
+}}
+
+/* -------------------- Dialog (Quick view modal) -------------------- */
+div[data-testid="stDialog"] > div {{
+    border-radius: 18px !important;
+    box-shadow: 0 24px 64px -20px rgba(15, 23, 42, 0.55) !important;
+}}
+
+/* -------------------- Sliders -------------------- */
+div[data-testid="stSlider"] [role="slider"] {{
+    box-shadow: 0 0 0 5px {c["accent_light"]} !important;
 }}
 </style>
 """

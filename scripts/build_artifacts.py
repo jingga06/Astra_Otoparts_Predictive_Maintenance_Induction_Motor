@@ -23,6 +23,7 @@ from pdm import alarm, anomaly, health_index, rul
 from pdm.bearing_physics import fault_frequencies
 from pdm.data_loader import RUN_SPECS, list_snapshots, load_channel, FS_HZ
 from pdm.features import extract_features
+from pdm.synthetic_sensors import generate as generate_synthetic_sensors
 
 ARTIFACTS_DIR = Path(__file__).resolve().parents[1] / "artifacts"
 FAULT_FREQS = fault_frequencies()
@@ -77,6 +78,23 @@ def attach_rul(result: dict, et: float) -> dict:
     # on a comparable, healthy-baseline-relative scale (see health_index.py).
     rul_res = rul.compute(df, df["is_alarm"], df["hi_norm"].to_numpy(), et)
     df = rul.annotate(df, rul_res)
+
+    # Presentation-friendly column: re-express the fitted RUL curve (which is
+    # fit on the hi_norm scale) back onto the same 0-100 health_score scale
+    # shown on the dashboard, so the "predicted trajectory" can be drawn
+    # directly on the Health Score chart without exposing the underlying
+    # curve-fit math to a non-technical audience.
+    hi_model = result["hi_model"]
+    span = max(hi_model.worst_observed - hi_model.healthy_baseline, 1e-9)
+    hi_smoothed_fitted = df["hi_fitted"] * hi_model.healthy_std + hi_model.healthy_baseline
+    normalized_bad_fitted = (hi_smoothed_fitted - hi_model.healthy_baseline) / span
+    df["health_score_fitted"] = 100.0 * np.clip(1.0 - normalized_bad_fitted, 0.0, 1.0)
+    df.loc[df["hi_fitted"].isna(), "health_score_fitted"] = np.nan
+
+    # Synthetic temperature/current (see pdm/synthetic_sensors.py) - display-only,
+    # derived from hi_norm, does not feed back into detection/health/alarm/RUL.
+    df = generate_synthetic_sensors(df, result["run_key"], result["bearing_id"])
+
     result["df"] = df
     result["rul_result"] = rul_res
     return result
