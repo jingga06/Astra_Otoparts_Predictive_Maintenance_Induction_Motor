@@ -17,9 +17,13 @@ gain that are deliberately different per sensor:
 
 This keeps the synthetic channels physically defensible (they move together
 with vibration-driven degradation, at different speeds/strengths, the way
-real sensors would) without touching or feeding back into the locked
-vibration-only anomaly/health-index/alarm/RUL pipeline - they are additive,
-display-only columns.
+real sensors would). They do NOT feed into the Isolation Forest anomaly model
+or the PCA Health Index (pdm/anomaly.py, pdm/health_index.py stay vibration-
+only, so their already-validated 3-sigma / RUL behaviour is untouched) - but
+they ARE included as voting/persistence candidate columns in pdm/alarm.py, so
+a genuinely elevated temperature/current reading can now contribute to (or
+confirm) an alarm, even though the values themselves are lagged transforms of
+the same vibration-based health index, not independent physical sensors.
 """
 
 import hashlib

@@ -23,7 +23,8 @@ COLORS = {
     "surface": "#FFFFFF",
     "border": "#E2E8F0",
     "text": "#020617",
-    "text_muted": "#64748B",
+    "text_muted": "#475569",   # slate-600 - darkest still legible as "muted" (was #64748B/slate-500,
+                                 # too light for small caption/label text on a projector)
     "critical": "#DC2626",
     "warning": "#D97706",
     "normal": "#16A34A",
@@ -37,8 +38,8 @@ STATUS_COLOR = {
 
 STATUS_LABEL = {
     "NORMAL": "Normal",
-    "WARNING": "Warning",
-    "CRITICAL": "Critical",
+    "WARNING": "Peringatan",
+    "CRITICAL": "Kritis",
 }
 
 _ICON_PATHS = {
@@ -161,6 +162,8 @@ def global_css() -> str:
 html, body, [class*="css"] {{
     font-family: 'Source Sans 3', -apple-system, sans-serif;
     color: {c["text"]};
+    font-size: 1rem;
+    line-height: 1.55;
 }}
 h1, h2, h3, h4, .app-title {{
     font-family: 'Lexend', sans-serif;
@@ -168,6 +171,20 @@ h1, h2, h3, h4, .app-title {{
     letter-spacing: -0.01em;
 }}
 #MainMenu, footer, header {{visibility: hidden;}}
+
+/* -------------------- Legibility pass: darker/bolder/larger muted text --------
+   Applies to Streamlit's own caption/widget-label chrome (not just our custom
+   classes below) so every small gray label in the app - captions, slider/
+   selectbox/multiselect labels, help text - reads clearly on a projector, not
+   just on a laptop screen. */
+[data-testid="stCaptionContainer"], [data-testid="stCaptionContainer"] p,
+[data-testid="stWidgetLabel"] p, [data-testid="stWidgetLabel"] label,
+.stMarkdown small {{
+    color: {c["text_muted"]} !important;
+    font-size: 0.92rem !important;
+    font-weight: 600 !important;
+    line-height: 1.5 !important;
+}}
 
 /* Living background: two soft drifting glows + a slowly panning isometric
    hex/triangle lattice (three 60deg line families - an engineering/PCB feel,
@@ -224,13 +241,13 @@ h1, h2, h3, h4, .app-title {{
             mask-image: linear-gradient(115deg, rgba(0,0,0,0.5), transparent 65%);
 }}
 .astra-topbar > div {{ position: relative; z-index: 1; }}
-.astra-topbar .title {{ font-family:'Lexend',sans-serif; font-weight:700; font-size:1.2rem; }}
-.astra-topbar .subtitle {{ font-size:0.8rem; opacity:0.88; }}
+.astra-topbar .title {{ font-family:'Lexend',sans-serif; font-weight:700; font-size:1.35rem; }}
+.astra-topbar .subtitle {{ font-size:0.92rem; font-weight:500; opacity:0.92; }}
 
 /* -------------------- KPI / metric cards -------------------- */
 .kpi-card {{
     position: relative; background: {c["surface"]}; border: 1px solid {c["border"]};
-    border-radius: 16px; padding: 18px 20px; height: 100%;
+    border-radius: 16px; padding: 22px 24px; height: 100%;
     box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 10px 24px -16px rgba(15, 23, 42, 0.25);
     transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
 }}
@@ -240,20 +257,20 @@ h1, h2, h3, h4, .app-title {{
     border-color: {c["accent"]}55;
 }}
 .kpi-label {{
-    font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.06em;
-    color: {c["text_muted"]}; font-weight: 700; margin-bottom: 8px;
+    font-size: 0.86rem; text-transform: uppercase; letter-spacing: 0.05em;
+    color: {c["text_muted"]}; font-weight: 700; margin-bottom: 10px;
     display:flex; align-items:center; gap:6px;
 }}
 .kpi-value {{
-    font-family: 'JetBrains Mono', 'Lexend', sans-serif; font-size: 1.9rem; font-weight:700;
+    font-family: 'JetBrains Mono', 'Lexend', sans-serif; font-size: 2rem; font-weight:700;
     color:{c["primary"]}; font-variant-numeric: tabular-nums; letter-spacing: -0.02em;
 }}
-.kpi-sub {{ font-size: 0.82rem; color: {c["text_muted"]}; margin-top: 4px; }}
+.kpi-sub {{ font-size: 0.92rem; color: {c["text_muted"]}; font-weight: 600; margin-top: 6px; }}
 
 /* -------------------- Status badges (with soft glow) -------------------- */
 .status-badge {{
     display:inline-flex; align-items:center; gap:8px;
-    padding: 6px 14px; border-radius: 999px; font-weight:700; font-size:0.92rem;
+    padding: 7px 16px; border-radius: 999px; font-weight:700; font-size:1rem;
     box-shadow: inset 0 0 0 1px currentColor;
 }}
 .status-badge.pulse {{ animation: astra-badge-pulse 1.8s ease-in-out infinite; }}
@@ -265,19 +282,19 @@ h1, h2, h3, h4, .app-title {{
 .reco-box {{
     border-left: 4px solid {c["accent"]};
     background: linear-gradient(135deg, {c["accent_light"]} 0%, #F0F9FF 100%);
-    border-radius: 10px; padding: 14px 16px; font-size: 0.92rem; color:{c["primary"]};
+    border-radius: 10px; padding: 16px 18px; font-size: 1rem; font-weight: 500; color:{c["primary"]};
     box-shadow: 0 6px 16px -10px rgba(3, 105, 161, 0.35);
 }}
 
 .data-source-caption {{
     display:flex; align-items:center; gap:6px; color:{c["text_muted"]};
-    font-size: 0.78rem; margin-top: 4px;
+    font-size: 0.88rem; font-weight: 600; margin-top: 6px;
 }}
 
 /* -------------------- Fleet Overview: attention rows & KPI strip -------------------- */
 .attention-row {{
     border-left: 4px solid {c["border"]}; background: {c["surface"]};
-    border-radius: 10px; padding: 12px 16px; margin-bottom: 8px; font-size: 0.92rem;
+    border-radius: 10px; padding: 14px 18px; margin-bottom: 8px; font-size: 1rem;
     box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 6px 16px -12px rgba(15, 23, 42, 0.25);
     transition: transform 150ms ease, box-shadow 150ms ease;
 }}
@@ -286,18 +303,18 @@ h1, h2, h3, h4, .app-title {{
     box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06), 0 10px 22px -12px rgba(15, 23, 42, 0.3);
 }}
 .fleet-kpi-value {{
-    font-family: 'JetBrains Mono', 'Lexend', sans-serif; font-size: 1.8rem; font-weight: 700;
+    font-family: 'JetBrains Mono', 'Lexend', sans-serif; font-size: 1.9rem; font-weight: 700;
     color: {c["primary"]}; font-variant-numeric: tabular-nums;
 }}
 .fleet-kpi-label {{
-    font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.06em;
+    font-size: 0.86rem; text-transform: uppercase; letter-spacing: 0.05em;
     color: {c["text_muted"]}; font-weight: 700;
 }}
 
 /* -------------------- Tabs -------------------- */
 .stTabs [data-baseweb="tab-list"] {{ gap: 4px; border-bottom: 1px solid {c["border"]}; }}
 .stTabs [data-baseweb="tab"] {{
-    font-family:'Lexend',sans-serif; font-weight:600; font-size:0.9rem;
+    font-family:'Lexend',sans-serif; font-weight:700; font-size:1rem;
     color: {c["text_muted"]};
 }}
 .stTabs [aria-selected="true"] {{ color: {c["accent"]} !important; }}

@@ -36,7 +36,7 @@ class RunSpec:
 RUN_SPECS = {
     "test2": RunSpec(
         key="test2",
-        label="Test 2 (dev run)",
+        label="Test 2 (run pengembangan)",
         folder="2nd_test",
         n_bearings=4,
         failing_bearing=1,
@@ -44,7 +44,7 @@ RUN_SPECS = {
     ),
     "test3": RunSpec(
         key="test3",
-        label="Test 3 (holdout run)",
+        label="Test 3 (run holdout)",
         folder="3rd_test",
         n_bearings=4,
         failing_bearing=3,

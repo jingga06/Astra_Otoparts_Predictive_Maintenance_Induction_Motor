@@ -20,10 +20,19 @@ import numpy as np
 import pandas as pd
 
 from pdm import alarm, anomaly, health_index, rul
+from pdm.anomaly import FEATURE_COLUMNS
 from pdm.bearing_physics import fault_frequencies
 from pdm.data_loader import RUN_SPECS, list_snapshots, load_channel, FS_HZ
 from pdm.features import extract_features
 from pdm.synthetic_sensors import generate as generate_synthetic_sensors
+
+# Alarm voting/persistence now considers temperature_c and current_a alongside
+# the 6 vibration-derived features (see pdm/synthetic_sensors.py for why these
+# two are lagged transforms of the same vibration-based health index, not
+# independent sensors - the voting mechanism itself is unchanged, only the
+# candidate column list is wider). The Isolation Forest (pdm/anomaly.py) stays
+# vibration-only so its already-validated 3-sigma threshold is untouched.
+ALARM_COLUMNS = FEATURE_COLUMNS + ["temperature_c", "current_a"]
 
 ARTIFACTS_DIR = Path(__file__).resolve().parents[1] / "artifacts"
 FAULT_FREQS = fault_frequencies()
@@ -58,7 +67,27 @@ def process_bearing(run_key: str, bearing_id: int) -> dict:
     hi_model = health_index.fit(df, anomaly_model.healthy_end_idx)
     df = health_index.annotate(df, hi_model)
 
-    df = alarm.evaluate(df, anomaly_model.healthy_end_idx)
+    # Synthetic temperature/current (pdm/synthetic_sensors.py) need to exist
+    # BEFORE alarm.evaluate() now that they're part of the voting feature set -
+    # generated here (moved up from attach_rul) rather than after alarm
+    # evaluation like before.
+    df = generate_synthetic_sensors(df, run_key, bearing_id)
+
+    # Vibration-only pass: this is what anchors the RUL trigger point, so the
+    # already-validated lead-time / RUL-RMSE numbers stay pinned to the
+    # original, noise-stable signal. temperature_c/current_a are EWMA-lagged
+    # transforms of hi_norm (see pdm/synthetic_sensors.py) - being smoother,
+    # they tend to linger near their own 3-sigma threshold for long stretches,
+    # and letting THAT shift when the RUL clock starts made several bearings'
+    # RUL fits far less accurate (RMSE 500+h on a 1073h run) when tried.
+    rul_trigger_alarm = alarm.evaluate(df, anomaly_model.healthy_end_idx, columns=FEATURE_COLUMNS)["is_alarm"]
+
+    # Displayed alarm: genuinely combines vibration + temperature + current
+    # (Astra/dosen feedback: alarm decisions should not rely on one parameter
+    # alone) - drives the badge/reason text shown on the dashboard and the
+    # false-alarm episode counts below, just not the RUL trigger point above.
+    df = alarm.evaluate(df, anomaly_model.healthy_end_idx, columns=ALARM_COLUMNS)
+    df["rul_trigger_alarm"] = rul_trigger_alarm
 
     return {
         "run_key": run_key,
@@ -76,7 +105,7 @@ def attach_rul(result: dict, et: float) -> dict:
     # not raw hi_smoothed - each bearing/run has its own independently-fit
     # PCA scale, so a cross-run ET only makes sense once both runs are put
     # on a comparable, healthy-baseline-relative scale (see health_index.py).
-    rul_res = rul.compute(df, df["is_alarm"], df["hi_norm"].to_numpy(), et)
+    rul_res = rul.compute(df, df["rul_trigger_alarm"], df["hi_norm"].to_numpy(), et)
     df = rul.annotate(df, rul_res)
 
     # Presentation-friendly column: re-express the fitted RUL curve (which is
@@ -90,10 +119,6 @@ def attach_rul(result: dict, et: float) -> dict:
     normalized_bad_fitted = (hi_smoothed_fitted - hi_model.healthy_baseline) / span
     df["health_score_fitted"] = 100.0 * np.clip(1.0 - normalized_bad_fitted, 0.0, 1.0)
     df.loc[df["hi_fitted"].isna(), "health_score_fitted"] = np.nan
-
-    # Synthetic temperature/current (see pdm/synthetic_sensors.py) - display-only,
-    # derived from hi_norm, does not feed back into detection/health/alarm/RUL.
-    df = generate_synthetic_sensors(df, result["run_key"], result["bearing_id"])
 
     result["df"] = df
     result["rul_result"] = rul_res

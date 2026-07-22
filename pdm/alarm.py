@@ -29,6 +29,24 @@ VOTING_CONFIRM_WINDOWS = 2  # a voting trigger (>=2 features abnormal at once) m
                              # troubleshooting notes: this is what caused an ~800h-early RUL
                              # trigger on the Test 3 holdout run, wrecking the exponential fit)
 
+# Nama ramah-pengguna untuk kolom fitur, dipakai di alarm_reason (Bahasa Indonesia,
+# ditampilkan langsung di dashboard) - fitur vibration tetap disebut per sub-fitur
+# teknis, sedangkan temperature/current pakai nama parameter fisiknya.
+FRIENDLY_NAMES = {
+    "rms": "Vibrasi (RMS)",
+    "kurtosis": "Vibrasi (kurtosis)",
+    "crest_factor": "Vibrasi (crest factor)",
+    "bpfo_energy": "Vibrasi (energi BPFO)",
+    "bpfi_energy": "Vibrasi (energi BPFI)",
+    "bsf_energy": "Vibrasi (energi BSF)",
+    "temperature_c": "Temperature",
+    "current_a": "Current",
+}
+
+
+def _friendly(col: str) -> str:
+    return FRIENDLY_NAMES.get(col, col)
+
 
 def _feature_zscores(df: pd.DataFrame, healthy_end_idx: int,
                       columns=FEATURE_COLUMNS) -> pd.DataFrame:
@@ -73,7 +91,7 @@ def evaluate(df: pd.DataFrame, healthy_end_idx: int,
     for i in range(n):
         if i < burn_in:
             levels[i] = "NORMAL"
-            reasons[i] = "Burn-in / baseline calibration period"
+            reasons[i] = "Periode kalibrasi awal (burn-in)"
             consecutive_abnormal = 0
             consecutive_normal = 0
             consecutive_voting = 0
@@ -82,20 +100,20 @@ def evaluate(df: pd.DataFrame, healthy_end_idx: int,
 
         k = n_abnormal[i]
         if k >= 2:
-            cols_abnormal = [c for c in columns if abnormal.iloc[i][c]]
+            cols_abnormal = [_friendly(c) for c in columns if abnormal.iloc[i][c]]
             consecutive_voting += 1
             consecutive_normal = 0
             if consecutive_voting >= VOTING_CONFIRM_WINDOWS:
                 consecutive_abnormal = persistence_n  # voting bypasses the persistence wait
                 state = "CRITICAL"
                 reasons[i] = (
-                    f"Voting: {k} parameters abnormal for {consecutive_voting} consecutive "
-                    f"windows ({', '.join(cols_abnormal)})"
+                    f"Voting: {k} parameter tidak normal selama {consecutive_voting} window "
+                    f"berturut-turut ({', '.join(cols_abnormal)})"
                 )
             else:
                 reasons[i] = (
-                    f"Voting building confirmation ({consecutive_voting}/{VOTING_CONFIRM_WINDOWS}): "
-                    f"{k} parameters abnormal ({', '.join(cols_abnormal)})"
+                    f"Voting sedang dikonfirmasi ({consecutive_voting}/{VOTING_CONFIRM_WINDOWS}): "
+                    f"{k} parameter tidak normal ({', '.join(cols_abnormal)})"
                 )
                 # state intentionally unchanged - a single noisy row hitting 2
                 # correlated features shouldn't alone flip status
@@ -103,33 +121,33 @@ def evaluate(df: pd.DataFrame, healthy_end_idx: int,
             consecutive_abnormal += 1
             consecutive_normal = 0
             consecutive_voting = 0
-            col_abnormal = [c for c in columns if abnormal.iloc[i][c]][0]
+            col_abnormal = _friendly([c for c in columns if abnormal.iloc[i][c]][0])
             if state == "CRITICAL":
                 # Was in the strongest state; a single-feature reading now
                 # doesn't clear it outright, downgrade to WARNING instead.
                 state = "WARNING"
-                reasons[i] = f"{col_abnormal} still abnormal (downgraded from voting alarm)"
+                reasons[i] = f"{col_abnormal} masih tidak normal (diturunkan dari status voting)"
             elif state == "WARNING" or consecutive_abnormal >= persistence_n:
                 state = "WARNING"
                 reasons[i] = (
-                    f"Persistence: {col_abnormal} abnormal for "
-                    f"{consecutive_abnormal} consecutive windows (>= {persistence_n})"
+                    f"Persistence: {col_abnormal} tidak normal selama "
+                    f"{consecutive_abnormal} window berturut-turut (>= {persistence_n})"
                 )
             else:
-                reasons[i] = f"Building persistence ({consecutive_abnormal}/{persistence_n})"
+                reasons[i] = f"Persistence sedang dikonfirmasi ({consecutive_abnormal}/{persistence_n})"
         else:
             consecutive_abnormal = 0
             consecutive_normal += 1
             consecutive_voting = 0
             if state != "NORMAL" and consecutive_normal < recovery_n:
                 reasons[i] = (
-                    f"Recovering - confirming normal ({consecutive_normal}/{recovery_n}) "
-                    f"before clearing {state}"
+                    f"Memulihkan - mengonfirmasi normal ({consecutive_normal}/{recovery_n}) "
+                    f"sebelum status {state} dibersihkan"
                 )
                 # state unchanged: stay alarmed until recovery is confirmed
             else:
                 state = "NORMAL"
-                reasons[i] = "All parameters within normal range"
+                reasons[i] = "Semua parameter dalam rentang normal"
 
         levels[i] = state
 
