@@ -198,7 +198,7 @@ already be at "Critical").
 - **Vibration** is the only real sensor data, from the public NASA IMS
   Bearing Dataset (Rexnord ZA-2115 bearings, 2000 RPM).
 - **Temperature and current** are synthetically generated from the same
-  vibration-based health index (time lag + noise) — see
+  vibration-based health index (time lag + noise), see
   `pdm/synthetic_sensors.py` and `SentinelPM_Report.docx` for full rationale.
 - The **Live Simulation** page demonstrates the retraining *mechanism*, not
   a live connection to physical Astra sensors.
