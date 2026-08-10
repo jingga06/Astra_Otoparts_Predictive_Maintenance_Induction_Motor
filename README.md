@@ -3,7 +3,7 @@
 Case 2 · Bootcamp AOP Winteq · PT Astra Otoparts Tbk
 
 SentinelPM continuously monitors induction motor bearings and detects early
-signs of degradation — before an actual failure occurs — using vibration,
+signs of degradation — before an actual failure occurs, using vibration,
 temperature, and current data. It combines an Isolation Forest anomaly
 detector with a PCA-based Health Index, a persistence-and-voting alarm rule,
 and an exponential Remaining Useful Life (RUL) estimator.
@@ -80,7 +80,7 @@ curves, and writes the results to `artifacts/` (per-bearing CSVs, `.joblib`
 model files, and `summary.csv`).
 
 > If `artifacts/*.csv` and `*.joblib` files are already included in this
-> submission, you can skip this step and go straight to Section 4 — unless
+> submission, you can skip this step and go straight to Section 4, unless
 > you want to verify the pipeline reproduces the same results from scratch.
 
 ---
@@ -94,11 +94,11 @@ streamlit run app/dashboard.py
 This opens the dashboard in your default browser (typically at
 `http://localhost:8501`). From the sidebar, you can switch between:
 
-- **Ringkasan Armada** (Fleet Overview) — status of all 8 bearings at once
-- **Detail Mesin** (Machine Detail) — Health Score, Alarm Status, RUL, and the
+- **Ringkasan Armada** (Fleet Overview) - status of all 8 bearings at once
+- **Detail Mesin** (Machine Detail) - Health Score, Alarm Status, RUL, and the
   Trend / Signal Detail / Sensors / Alerts & Recommendation tabs for a single
   bearing
-- **Live Simulation** — see Section 5 below; this page only shows live
+- **Live Simulation** - see Section 5 below; this page only shows live
   progress if the simulator (Section 5) has been started separately
 
 ---
@@ -106,7 +106,7 @@ This opens the dashboard in your default browser (typically at
 ## 5. Running the Live Simulation (optional, for the "Live Simulation" page)
 
 The Live Simulation page reads from a file that is continuously updated by a
-**separate, standalone process** — it does not run automatically when you
+**separate, standalone process**, it does not run automatically when you
 start the dashboard. To see it in action:
 
 1. Open a **second terminal** (keep the dashboard running in the first one).
@@ -126,8 +126,7 @@ the literal cadence of ~60 data points per 30 minutes instead of the
 accelerated demo cadence (~10 data points every ~15 seconds).
 
 **To restart the simulation from a clean "Normal" state:** delete
-`artifacts/live_bearing.csv` before starting `run_live_simulation.py` again —
-otherwise it will continue from wherever the last run left off (which may
+`artifacts/live_bearing.csv` before starting `run_live_simulation.py` again, otherwise it will continue from wherever the last run left off (which may
 already be at "Critical").
 
 ---
@@ -139,8 +138,7 @@ already be at "Critical").
   once. Click anywhere on the dashboard once, and the next alarm sound will
   play normally. This is a browser security restriction, not a bug.
 - **Live Simulation page shows no data / stale timestamp:** make sure
-  `scripts.run_live_simulation` is actually running in a separate terminal —
-  the dashboard only reads the file it produces and does not generate data
+  `scripts.run_live_simulation` is actually running in a separate terminal, the dashboard only reads the file it produces and does not generate data
   on its own.
 - **Import errors on startup:** double-check you're running commands from
   the project's root folder (so `pdm` and `app` are importable as packages),
@@ -153,9 +151,9 @@ already be at "Critical").
 - **Vibration** is the only real sensor data, sourced directly from the
   public NASA IMS Bearing Dataset (Rexnord ZA-2115 bearings, 2000 RPM).
 - **Temperature and current** are synthetically generated from the same
-  vibration-based health index (with a time lag and added noise) — see
+  vibration-based health index (with a time lag and added noise), see
   `pdm/synthetic_sensors.py` and Section 4.3 of `SentinelPM_Report.docx` for
   the full explanation and rationale.
 - The **Live Simulation** page demonstrates the retraining *mechanism*, not
-  a live connection to physical Astra sensors — see Section 5.4 of the
+  a live connection to physical Astra sensors, see Section 5.4 of the
   report for the full honest disclosure.
