@@ -50,6 +50,21 @@ Full methodology and equations are in `SentinelPM_Report.docx`.
 
 ---
 
+## Dashboard
+
+**Fleet Overview** - status of all 8 bearings at a glance:
+![Fleet Overview](./dashboard-fleet-overview.png)
+
+**Machine Detail** - Health Score, Alarm Status, RUL, and degradation trend:
+![Machine Detail](./dashboard-machine-detail.png)
+
+**Signal Detail** - envelope spectrum showing a sharp peak exactly at the
+calculated BPFO fault frequency, direct physical evidence of the outer-race
+defect:
+![Signal Detail](./dashboard-signal-detail.png)
+
+---
+
 ## Results
 
 - Validated on an honest train/holdout split (Test 2 to build, Test 3 never
