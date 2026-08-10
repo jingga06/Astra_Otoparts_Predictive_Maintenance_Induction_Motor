@@ -1,4 +1,4 @@
-# SentinelPM — Predictive Maintenance for Induction Motor Bearings
+# SentinelPM - Predictive Maintenance for Induction Motor Bearings
 
 Case 2 · Bootcamp AOP Winteq · PT Astra Otoparts Tbk
 
