@@ -3,7 +3,7 @@
 Case 2 · Bootcamp AOP Winteq · PT Astra Otoparts Tbk
 
 SentinelPM continuously monitors induction motor bearings and detects early
-signs of degradation — before an actual failure occurs, using vibration,
+signs of degradation, before an actual failure occurs, using vibration,
 temperature, and current data. It combines an Isolation Forest anomaly
 detector with a PCA-based Health Index, a persistence-and-voting alarm rule,
 and an exponential Remaining Useful Life (RUL) estimator.
