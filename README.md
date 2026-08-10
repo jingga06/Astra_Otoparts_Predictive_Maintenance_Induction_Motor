@@ -205,7 +205,7 @@ already be at "Critical").
 
 ---
 
-## Team — Famasya
+## Team - Famasya
 
 President University · Information Systems, Data Science Concentration
 
