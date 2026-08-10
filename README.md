@@ -8,15 +8,62 @@ temperature, and current data. It combines an Isolation Forest anomaly
 detector with a PCA-based Health Index, a persistence-and-voting alarm rule,
 and an exponential Remaining Useful Life (RUL) estimator.
 
-See `SentinelPM_Report.docx` for full technical documentation (architecture,
-methodology, validation results, and known limitations).
+See [`SentinelPM_Report.docx`](./SentinelPM_Report.docx) for full technical
+documentation, architecture, methodology, validation results, and honestly
+disclosed limitations.
 
-> **Note:** the exact file/folder names below follow the project structure
-> discussed during development (`pdm/`, `app/`, `scripts/`, `artifacts/`).
-> Please adjust any paths here to match your actual repository layout before
-> sharing this README.
+**Dataset:** [NASA IMS Bearing Dataset](https://data.nasa.gov/dataset/ims-bearings)
 
-## OUR DATASET: https://data.nasa.gov/dataset/ims-bearings
+---
+
+## Why this matters
+
+Bearings account for roughly 41-42% of induction motor failures (IEEE-IAS /
+EPRI). Most plants only react once a fault is already obvious, by then,
+there's little room to schedule maintenance without disrupting production.
+SentinelPM is built to catch degradation early enough that maintenance
+becomes a scheduling decision instead of an emergency, while keeping false
+alarms low enough that technicians still trust the alerts they see.
+
+---
+
+## How it works
+
+1. **Feature extraction** - raw vibration signals are summarized into
+   time-domain features (RMS, kurtosis, crest factor) and physics-based
+   fault frequencies (BPFO, BPFI, BSF), calculated directly from bearing
+   geometry, not guessed.
+2. **Anomaly detection** - an Isolation Forest, trained only on healthy
+   data, flags abnormal vibration patterns.
+3. **Health Index (PCA)** - six degradation-sensitive features are combined
+   into a single 0–100 health score.
+4. **Alarm logic** - a persistence + voting rule across vibration,
+   temperature, and current avoids false alarms from momentary noise.
+5. **RUL estimation** - once an alarm fires, an exponential degradation
+   curve projects the remaining useful life, with the failure threshold
+   honestly borrowed from a separate holdout recording (no peeking at the
+   future).
+6. **Dashboard** - a bilingual (ID) Streamlit dashboard for fleet overview,
+   per-machine detail, trend charts, and a live simulation mode.
+
+Full methodology and equations are in `SentinelPM_Report.docx`.
+
+---
+
+## Results
+
+- Validated on an honest train/holdout split (Test 2 to build, Test 3 never
+  touched until the system was finished).
+- Outer-race fault location physically confirmed, envelope spectrum shows
+  a sharp peak exactly at the calculated BPFO frequency (236.4 Hz).
+- Reduced alarm noise from dozens of false-positive episodes down to a
+  handful, compared to a naive single-threshold approach.
+- Live Simulation mode proven to ingest continuously growing data and
+  retrain itself automatically, without manual intervention.
+
+Known limitations (data is currently the public NASA dataset, not real
+Astra sensor data; RUL accuracy drops for non-monotonic degradation
+patterns) are disclosed in full in the report rather than glossed over.
 
 ---
 
@@ -148,12 +195,22 @@ already be at "Critical").
 
 ## 7. Notes on Data Honesty
 
-- **Vibration** is the only real sensor data, sourced directly from the
-  public NASA IMS Bearing Dataset (Rexnord ZA-2115 bearings, 2000 RPM).
+- **Vibration** is the only real sensor data, from the public NASA IMS
+  Bearing Dataset (Rexnord ZA-2115 bearings, 2000 RPM).
 - **Temperature and current** are synthetically generated from the same
-  vibration-based health index (with a time lag and added noise), see
-  `pdm/synthetic_sensors.py` and Section 4.3 of `SentinelPM_Report.docx` for
-  the full explanation and rationale.
+  vibration-based health index (time lag + noise) — see
+  `pdm/synthetic_sensors.py` and `SentinelPM_Report.docx` for full rationale.
 - The **Live Simulation** page demonstrates the retraining *mechanism*, not
-  a live connection to physical Astra sensors, see Section 5.4 of the
-  report for the full honest disclosure.
+  a live connection to physical Astra sensors.
+
+---
+
+## Team — Famasya
+
+President University · Information Systems, Data Science Concentration
+
+| Name | 
+|---|
+| Fatwa Putri Jingga |
+| Marsha Aulia Rizky |
+| Syakira Lathifa Awliya |
